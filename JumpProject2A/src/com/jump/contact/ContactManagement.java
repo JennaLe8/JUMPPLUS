@@ -28,9 +28,9 @@ public class ContactManagement {
             pstmt.setString(2, password);
             pstmt.executeUpdate();
             // Execution
-            if (pstmt.executeUpdate() > 0) {
-                return true;
-            }
+          
+            return true;
+            
             // return
         }
         catch (SQLIntegrityConstraintViolationException e) {
@@ -61,21 +61,31 @@ public class ContactManagement {
  
             if (rs.next()) {
                 // after login menu driven interface method
- 
+            	String selectSQL = "select USER_ID from USER_ACCOUNT where USER_EMAIL=?";
+    			PreparedStatement pst2= con.prepareStatement(selectSQL);
+    			pst2.setString(1,email);
+    			ResultSet res = pst2.executeQuery();
+    			
+    			PreparedStatement pst;
+    			int userId=0;
+    			if(res.next()){
+    				userId = res.getInt("USER_ID");
+    				
+    			}
                 int ch = 5;
                 String contactName;
                 String contactEmail;
-                int contactNumber;
-                int userID;
+                String contactNumber;
                 while (true) {
                     try {
                         System.out.println("Welcome back, "+ rs.getString("USER_EMAIL"));
                         System.out.println("1)Add Contact");
                         System.out.println("2)Delete Contact");
-                        System.out.println("3)Sort Contacts");
-                        System.out.println("4)View Contacts");
-                        System.out.println("5)View Users");      
-                        System.out.println("6)Log out");      
+                        System.out.println("3)Update Contact");
+                        System.out.println("4)Sort Contacts");
+                        System.out.println("5)View Contacts");
+                        System.out.println("6)View Users");      
+                        System.out.println("7)Log out");      
                         
 
                         System.out.print("Enter Choice:");
@@ -86,10 +96,9 @@ public class ContactManagement {
                             System.out.print("Enter contact email: ");
                             contactEmail = sc.readLine();
                             System.out.print("Enter contact phone number: ");
-                            contactNumber = Integer.parseInt(sc.readLine());
-                            System.out.print("Enter user ID: ");
-                            userID = Integer.parseInt(sc.readLine());
-                            if(ContactManagement.addContact(contactName, contactEmail, contactNumber, userID)) {
+                            contactNumber = sc.readLine();
+                            
+                            if(ContactManagement.addContact(contactName, contactEmail, contactNumber, userId)) {
                             	 System.out.println("Contact added successfully!\n");
                             }
                             else {
@@ -110,16 +119,34 @@ public class ContactManagement {
                             }
                         }
                         else if (ch == 3) {
-                        	ContactManagement.sortContacts();
-                        
+                        	System.out.print( "Enter contact name: ");
+                        	contactName = sc.readLine();
+
+                        	System.out.print( "What do you want to update? (choose among 'name', 'email', or 'number'): ");
+                        	String updateVar = sc.readLine();
+                        	
+                        	System.out.print( "Enter new value: ");
+                        	String updateVal = sc.readLine();
+                        	
+                        	boolean resp = ContactManagement.updateContact(updateVar, contactName, updateVal);
+                        	if(resp == true) {
+                        		System.out.println("Contact updated successfully!\n");
+                            }
+                            else if(resp == false) {
+                                 System.out.println("deleted failed:(\n");
+                            }
                         }
                         else if (ch == 4) {
-                        	ContactManagement.viewContacts();
+                        	ContactManagement.sortContacts(userId);
+                        
                         }
-                        else if(ch == 5) {
-                        	ContactManagement.viewUsers();
+                        else if (ch == 5) {
+                        	ContactManagement.viewContacts(userId);
                         }
                         else if(ch == 6) {
+                        	ContactManagement.viewUsers();
+                        }
+                        else if(ch == 7) {
                         	// write to new file the user's contacts every time they log out
                         	ContactManagement.writeToFile(email);
                         	break;
@@ -148,14 +175,15 @@ public class ContactManagement {
         return false;
     }
     
-    public static boolean addContact(String contactName, String contactEmail, int contactNumber, int userID)throws SQLException {
+    public static boolean addContact(String contactName, String contactEmail, String contactNumber, int userID)throws SQLException {
     	 try {
              //con.setAutoCommit(false);
+    		
              String sql = "INSERT INTO CONTACT (CONTACT_NAME,CONTACT_EMAIL,CONTACT_NUMBER,USER_ID) VALUES (?,?,?,?)";
              PreparedStatement pstmt = con.prepareStatement(sql);
              pstmt.setString(1, contactName);
              pstmt.setString(2, contactEmail);
-             pstmt.setInt(3, contactNumber);
+             pstmt.setString(3, contactNumber);
              pstmt.setInt(4, userID);
              pstmt.executeUpdate();
              
@@ -173,6 +201,58 @@ public class ContactManagement {
          return false;
     	
     }
+    public static boolean updateContact(String updateVar, String contactName, String updateVal)throws SQLException {
+    	String sql = "";
+    	String selectSQL = "select CONTACT_ID from CONTACT where CONTACT_NAME=?";
+		PreparedStatement st= con.prepareStatement(selectSQL);
+		st.setString(1,contactName);
+		ResultSet rs = st.executeQuery();
+		
+		PreparedStatement pst;
+		int contactId=0;
+		if(rs.next()){
+			contactId = rs.getInt("CONTACT_ID");
+			
+		}
+	
+    	if(updateVar.equalsIgnoreCase("name")) {
+    		sql = "update CONTACT set CONTACT_NAME = ? where CONTACT_ID = ?";
+    		pst= con.prepareStatement(sql);
+    		pst.setString(1,updateVal);
+    		pst.setInt(2, contactId);
+    		
+        	pst.executeUpdate();
+        	String resSQL = "select CONTACT_NAME from CONTACT where CONTACT_ID=?";
+        	pst= con.prepareStatement(resSQL);
+        	pst.setInt(1, contactId);
+        	rs.next();
+        
+    		
+    	}
+    	else if(updateVar.equalsIgnoreCase("email")) {
+    		sql = "update CONTACT set CONTACT_EMAIL = ? where CONTACT_ID = ?";
+    		pst= con.prepareStatement(sql);
+    		pst.setString(1,updateVal);
+    		pst.setInt(2, contactId);
+    		
+        	pst.executeUpdate();
+    		
+    	}
+    	else if(updateVar.equalsIgnoreCase("number")) {
+    		sql = "update CONTACT set CONTACT_NUMBER = ? where CONTACT_ID = ?";
+    		pst= con.prepareStatement(sql);
+    		pst.setString(1, updateVal);
+    		pst.setInt(2, contactId);
+    		
+        	pst.executeUpdate();
+    		
+    	}
+    	
+    	  
+    	return true;
+		
+    	
+    }
     public static boolean deleteContact(String contactName)throws SQLException {
     	
 		String sql = "DELETE FROM CONTACT WHERE CONTACT_NAME=?";
@@ -187,11 +267,12 @@ public class ContactManagement {
     	
     }
     
-    public static void sortContacts()throws SQLException {
+    public static void sortContacts(int userId)throws SQLException {
     	
-    	String sql = "SELECT * from CONTACT ORDER by CONTACT_NAME";
+    	String sql = "SELECT * from CONTACT WHERE USER_ID=? ORDER by CONTACT_NAME";
     	PreparedStatement st = con.prepareStatement(sql);
-    	ResultSet rs = st.executeQuery(sql);
+    	st.setInt(1, userId);
+    	ResultSet rs = st.executeQuery();
     	System.out.println(
                  "-----------------------------------------------------------");
 	     System.out.printf("%12s %10s %10s\n",
@@ -200,23 +281,23 @@ public class ContactManagement {
          // Execution
   
          while (rs.next()) {
-             System.out.printf("%12s %10s %10d\n",
+             System.out.printf("%12s %10s %10s\n",
                    rs.getString("CONTACT_NAME"),
                    rs.getString("CONTACT_EMAIL"),
-                   rs.getInt("CONTACT_NUMBER"));
+                   rs.getString("CONTACT_NUMBER"));
 	     }
 	     System.out.println(
 	         "-----------------------------------------------------------\n");
     }
     
-    public static void viewContacts()throws SQLException {
+    public static void viewContacts(int userId)throws SQLException {
    	 try {
    		 
             // query
-            String sql = "select * from CONTACT";
+            String sql = "select * from CONTACT where USER_ID=?";
             PreparedStatement st = con.prepareStatement(sql);
- 
-            ResultSet rs = st.executeQuery(sql);
+            st.setInt(1, userId);
+            ResultSet rs = st.executeQuery();
             System.out.println(
                 "-----------------------------------------------------------");
             System.out.printf("%12s %10s %10s\n",
@@ -225,10 +306,10 @@ public class ContactManagement {
             // Execution
  
             while (rs.next()) {
-                System.out.printf("%12s %10s %10d\n",
+                System.out.printf("%12s %10s %10s\n",
                                   rs.getString("CONTACT_NAME"),
                                   rs.getString("CONTACT_EMAIL"),
-                                  rs.getInt("CONTACT_NUMBER"));
+                                  rs.getString("CONTACT_NUMBER"));
             }
             System.out.println(
                 "-----------------------------------------------------------\n");
@@ -264,10 +345,23 @@ public class ContactManagement {
    }
    public static void writeToFile(String email) throws IOException, SQLException {
 	   try {
-		   String sql = "SELECT * FROM CONTACT";
-		  // Statement statement = con.createStatement();
-		   PreparedStatement statement
-           = con.prepareStatement(sql);
+		   //String sql = "";
+	    	String selectSQL = "select USER_ID from USER_ACCOUNT where USER_EMAIL=?";
+			PreparedStatement st= con.prepareStatement(selectSQL);
+			st.setString(1,email);
+			ResultSet rs = st.executeQuery();
+			
+			int userId=0;
+			if(rs.next()){
+				userId = rs.getInt("USER_ID");
+				System.out.println(
+		                "USER_ID: " + userId);
+			}
+		
+		   String sql = "SELECT * FROM CONTACT WHERE USER_ID=?";
+		   PreparedStatement statement= con.prepareStatement(sql);
+		   statement.setInt(1, userId);
+		  
 	       ResultSet result = statement.executeQuery();
 	       String csvFilePath = email+".csv";
 	       BufferedWriter fileWriter = new BufferedWriter(new FileWriter(csvFilePath));
@@ -277,7 +371,7 @@ public class ContactManagement {
            while (result.next()) {
                String contactName = result.getString("contact_name");
                String contactEmail = result.getString("contact_email");
-               int contactNumber = result.getInt("contact_number");
+               String contactNumber = result.getString("contact_number");
                 
                String line = String.format("\"%s\",%s,%s",
             		   contactName, contactEmail, contactNumber);

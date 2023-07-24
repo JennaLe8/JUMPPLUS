@@ -25,7 +25,7 @@ public class DatabaseConnection {
             String mysqlJDBCDriver
                 = "com.mysql.cj.jdbc.Driver"; //jdbc driver
             String url
-                = "jdbc:mysql://127.0.0.1:3306/TEST3"; //mysql url
+                = "jdbc:mysql://127.0.0.1:3306/TEST7"; //mysql url
             String user = "root";        //mysql username
             String pass = "hohoGreat9^^";  //mysql passcode
             Class.forName(mysqlJDBCDriver);
