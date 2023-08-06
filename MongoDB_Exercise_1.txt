@@ -1,0 +1,384 @@
+#Create a MongoDB collection to store the data from both tables as an employeeInfo collection. 
+#The Date of Birth field should be a subdocument with month, day, and year fields. 
+#The Address field should be a subdocument with city and state fields
+
+use employeedb;
+
+db.createCollection("employeeInfo")
+
+db.employeeInfo.insertOne({
+    EmpID: 1,
+    EmpFname: "Sanjay",
+    EmpLname: "Mehra",
+    Department: "HR",
+    Project: "P1",
+    Address: {city: "Hyderabad(HYD)", state: "Telangana"},
+    DOB: {month: 01, day: 12, year: 1976},
+    Gender: "M",
+    EmpPosition: [
+        {
+            Position: "Manager",
+            Salary: 500000
+        },
+        {
+            Position: "Executive",
+            Salary: 300000
+        }
+    ],
+    DateOfJoining: "01/05/2022"
+})
+
+db.employeeInfo.insertOne({
+    EmpID: 2,
+    EmpFname: "Ananya",
+    EmpLname: "Mishra",
+    Department: "Admin",
+    Project: "P2",
+    Address: {city: "Delhi(DEL)", state: ""},
+    DOB: {month: 02, day:05, year: 1968},
+    Gender: "F",
+    EmpPosition: [
+        {
+            Position: "Executive",
+            Salary: 75000
+        },
+        {
+            Position: "Lead",
+            Salary: 85000
+        }
+    ],
+    DateOfJoining: "02/05/2022"
+})
+
+db.employeeInfo.insertOne({ 
+    EmpID: 3, 
+    EmpFname: "Rohan", 
+    EmpLname: "Diwan", 
+    Department: "Account", 
+    Project: "P3", 
+    Address: { city: "Mumbai(BOM)", state: "Maharashtra" }, 
+    DOB: { month: 01, day: 01, year: 1980 }, 
+    Gender: "M", 
+    EmpPosition: [
+        {
+            Position: "Manager",
+            Salary: 90000
+        }
+    ],
+    DateOfJoining: "01/05/2022"
+})
+
+db.employeeInfo.insertOne({ 
+    EmpID: 4 
+    EmpFname: "Sonia", 
+    EmpLname: "Kulkarni", 
+    Department: "HR", 
+    Project: "P1", 
+    Address: { city: "Hyderabad(HYD)", state: "Telangana" }, 
+    DOB: { month: 02, day: 05, year: 1992 }, 
+    Gender: "F", 
+})
+
+db.employeeInfo.insertOne({ 
+    EmpID: 5 
+    EmpFname: "Ankit", 
+    EmpLname: "Kapoor", 
+    Department: "Admin", 
+    Project: "P2", 
+    Address: { city: "Delhi(DEL)", state: "" }, 
+    DOB: { month: 03, day: 07, year: 1994 }, 
+    Gender: "M", 
+})
+
+#1. Write a query to fetch the EmpFname from the EmployeeInfo collection
+
+db.employeeInfo.find({}, {EmpFname: 1})
+
+#2. Write a query to fetch the number of employees working in the department ‘HR’.
+
+db.employeeInfo.find({Department: "HR"})
+
+#3. Write a query to get the current date.
+
+db.employeeInfo.find({}, {DateOfJoining: 1,  EmpFname: 1, EmpLname: 1} )
+
+#4. Write a query to retrieve the first four characters of EmpLname from the EmployeeInfo collection.
+
+db.employeeInfo.aggregate([
+  { $project: 
+    {EmpLnameExtracted: 
+        { $substr: [ "$EmpLname", 0, 3 ] }
+    }
+  }
+])
+
+#5. Write a query to fetch only the place name(string before brackets) from the Address field of EmployeeInfo collection.
+
+db.employeeInfo.aggregate([
+{
+    $match:{"Address.city": {$regex: "^[^\(]+"}}
+},
+{
+    $group:{
+        _id:null,
+        PlaceName:{$push:"$Address.city"}
+    }
+}])
+
+#6. Write a query to find all the employees whose salary is between 50000 to 100000.
+
+db.employeeInfo.aggregate([  { 
+    $match :  {
+        $and: [{ "EmpPosition.Salary": {$gte: 50000}}, {"EmpPosition.Salary": { $lte: 100000 }}]
+    } 
+}]);
+
+#7. Write a query to find the names of employees that begin with ‘S’
+
+db.employeeInfo.aggregate([
+    {
+        $match: {$or: [{"EmpFname": {$regex: "^S"}}, {"EmpLname": {$regex: "^S"}} ]}
+    }
+])
+
+#8. Write a query to retrieve the EmpFname and EmpLname in a single field “FullName”. 
+#The first name and the last name must be separated with space.
+
+db.employeeInfo.aggregate(
+   [
+      { $project: { "FullName": { $concat: [ "$EmpFname", " ", "$EmpLname" ] } } }
+   ]
+)
+
+#9. Write a query to fetch all the records from the EmployeeInfo collection ordered by EmpLname in 
+#descending order and Department in the ascending order.
+
+db.employeeInfo.aggregate(
+   [
+     { $sort : { EmpLname : -1, Department: 1 } }
+   ]
+)
+
+#10. Write a query to fetch details of all employees excluding the employees with first names, 
+“Sanjay” and “Sonia” from the EmployeeInfo collection.
+
+db.employeeInfo.find({
+    EmpFname: {
+        $nin: ["Sanjay", "Sonia"]
+    }
+})
+
+#11. Write a query to fetch details of employees with the address as “Delhi(DEL)”.
+
+db.employeeInfo.find({
+    "Address.city": "Delhi(DEL)"
+})
+
+#12. Write a query to fetch all employees who also hold the managerial position.
+
+db.employeeInfo.aggregate([
+    {
+        $match: {"EmpPosition.Position": "Manager"}
+    }
+])
+
+#13. Write a query to fetch the department-wise count of employees sorted by department’s count in ascending order.
+
+db.employeeInfo.aggregate([
+    {
+        $group: {
+            _id: "$Department",
+            count: { $sum: 1 }
+        }
+    },
+    {
+        $sort: {count: 1}
+    }
+])
+
+#14. Write a query to retrieve two minimum and maximum salaries from the EmployeePosition collection.
+
+db.employeeInfo.aggregate(
+   [ 
+    {
+        $unwind : "$EmpPosition" 
+    },
+    {
+        $sort: {"EmpPosition.Salary": -1}
+    },
+    {
+        $facet: {
+            "maxSalary": [
+                {
+                    $group: {
+                        _id: null,
+                        result: { $first: "$EmpPosition.Salary" }
+                    }
+                }
+            ],
+            "minSalary": [
+                {
+                    $group: {
+                        _id: null,
+                        result: {
+                            $lastN:
+                            {
+                                input: "$EmpPosition.Salary",
+                                n: 2
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+   ]
+)
+
+#15. Write a query to retrieve duplicate records from a collection.
+
+db.employeeInfo.aggregate(
+    {
+        $match: {"EmpID": { $ne : null } } 
+    },
+    {
+        $group : {_id: "$EmpID", count: { $sum: 1 } } 
+    },
+    {
+        $match: {count : {$gt: 1} } 
+    },
+    {
+        $project: {EmpID : "$_id", _id : 0} 
+    }
+)
+
+#16. Write a query to retrieve the list of employees working in the same department.
+
+db.employeeInfo.aggregate([
+    {
+        $facet: {
+            "Account": [
+                {
+                    $match: {
+                        "Department": { $eq: "Account"}
+                    }
+                }
+            ],
+            "Admin": [
+                {
+                    $match: {
+                       "Department": {$eq: "Admin"}
+                    }
+                }
+            ],
+            "HR": [
+                {
+                    $match: {
+                        "Department": {$eq: "HR"}
+                    }
+                }
+            ]
+        }
+    }
+])
+
+#17. Write a query to retrieve the last 3 records from the EmployeeInfo collection.
+
+db.employeeInfo.find().skip(db.employeeInfo.count() - 3)
+
+#18. Write a query to find the third-highest salary from the EmpPosition collection.
+
+db.employeeInfo.aggregate( [  
+    {
+        $unwind : "$EmpPosition" 
+    },
+    {
+        $sort: {"EmpPosition.Salary": -1}
+    },
+    {
+        $limit: 3
+    },
+    {
+        $skip: 2
+    }
+])
+
+#19. Write a query to display the first and the last record from the EmployeeInfo collection.
+
+db.employeeInfo.aggregate({
+   $group: {
+      _id: null,
+      first: { $first: "$$ROOT" },
+      last: { $last: "$$ROOT" }
+    }
+});
+
+#20. Write a query to retrieve Departments who have less than 2 employees working in it.
+
+db.employeeInfo.aggregate(
+    {
+        $match: {"Department": { $ne : null } } 
+    },
+    {
+        $group : {_id: "$Department", count: { $sum: 1 } } 
+    },
+    {
+        $match: {count : {$lt: 2} } 
+    }
+)
+
+#21. Write a query to retrieve EmpPostion along with total salaries paid for each of them.
+
+db.employeeInfo.aggregate([
+    {
+        $unwind : "$EmpPosition" 
+    },
+    {
+        $facet: {
+            "Manager": [
+                {
+                    $match: {
+                        "EmpPosition.Position": { $eq: "Manager"}
+                    } 
+                },
+                {
+                   $group: {
+                        _id: null,
+                        totalSalaries: { $push:  "$EmpPosition.Salary" },
+                        sum: {$sum: "$EmpPosition.Salary"}
+                   }
+                }
+            ],
+            "Executive": [
+                {
+                    $match: {
+                        "EmpPosition.Position": { $eq: "Executive"}
+                    } 
+                },
+                {
+                   $group: {
+                        _id: null,
+                        totalSalaries: { $push:  "$EmpPosition.Salary" },
+                        sum: {$sum: "$EmpPosition.Salary"}
+                   }
+                }
+            ],
+            "Lead": [
+                {
+                    $match: {
+                        "EmpPosition.Position": { $eq: "Lead"}
+                    } 
+                },
+                {
+                   $group: {
+                        _id: null,
+                        totalSalaries: { $push:  "$EmpPosition.Salary" },
+                        sum: {$sum: "$EmpPosition.Salary"}
+                   }
+                }
+            ]
+        }
+    }
+])
+
+
